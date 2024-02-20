@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"weatherGo/pkg/db"
+	"weatherGo/internal/repository"
+	mongoRepo "weatherGo/internal/repository/mongo"
+	"weatherGo/pkg/mongoDB"
 
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 /*
@@ -18,15 +19,16 @@ import (
 	- add logging in error handling
 	- add tests for both handlers
 	- add .env.example
+	- hold api key in context and retrieve it from there (middleware that stores in context)
+	- make fetching func so handler fetches from api through repository
 */
 
 type application struct {
-	db *mongo.Client
+	wr            repository.Database
+	weatherAPIKey string
 }
 
 func main() {
-	app := application{}
-
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
@@ -34,7 +36,7 @@ func main() {
 
 	uri := os.Getenv("DB_URI")
 
-	db, err := db.OpenConnection(uri)
+	db, err := mongoDB.OpenConnection(uri)
 	if err != nil {
 		log.Fatalf("Error connection to database: %v", err)
 	}
@@ -43,6 +45,14 @@ func main() {
 			return
 		}
 	}(context.TODO())
+
+	weatherRepo := mongoRepo.NewWeatherRepository(db)
+	weatherAPIKey := os.Getenv("WEATHER_API_KEY")
+
+	app := &application{
+		wr:            weatherRepo,
+		weatherAPIKey: weatherAPIKey,
+	}
 
 	srv := http.Server{
 		Addr:         fmt.Sprintf("127.0.0.1:%s", os.Getenv("APP_PORT")),

@@ -1,4 +1,4 @@
-package db
+package mongoDB
 
 import (
 	"context"
@@ -21,9 +21,6 @@ func OpenConnection(uri string) (*mongo.Client, error) {
 	}
 
 	if err := client.Ping(context.Background(), nil); err != nil {
-		if err := client.Disconnect(context.Background()); err != nil {
-			panic(err)
-		}
 		return nil, err
 	}
 
