@@ -2,37 +2,27 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"weatherGo/internal"
 )
 
 func (app *application) weather(w http.ResponseWriter, req *http.Request) {
-	city := "Astana"
+	var input struct {
+		City string `json:"city"`
+	}
 
-	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&APPID=%s", city, app.weatherAPIKey)
+	if err := internal.ReadJSON(req.Body, &input); err != nil {
+		// Handle error
+		log.Fatalf("Error decoding json from request: %v", err)
+	}
 
-	resp, err := http.Get(url)
+	_, err := app.wr.GetByCity(input.City)
 	if err != nil {
-		log.Fatalf("Error making GET request to Open Weather API: %v", err)
+		log.Print(err)
+		w.WriteHeader(500)
+		return
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Unexpected response status code: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Error reading response body: %v", err)
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(body, &data); err != nil {
-		log.Fatalf("Error unmarshaling response body: %v", err)
-	}
-	fmt.Println(data)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Everything is ok!"))

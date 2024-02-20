@@ -9,6 +9,7 @@ import (
 	"time"
 	"weatherGo/internal/repository"
 	mongoRepo "weatherGo/internal/repository/mongo"
+	openweather "weatherGo/internal/repository/openWeather"
 	"weatherGo/pkg/mongoDB"
 
 	"github.com/joho/godotenv"
@@ -19,13 +20,12 @@ import (
 	- add logging in error handling
 	- add tests for both handlers
 	- add .env.example
-	- hold api key in context and retrieve it from there (middleware that stores in context)
 	- make fetching func so handler fetches from api through repository
 */
 
 type application struct {
-	wr            repository.Database
-	weatherAPIKey string
+	wr repository.Database
+	ow repository.WeatherAPI
 }
 
 func main() {
@@ -46,12 +46,13 @@ func main() {
 		}
 	}(context.TODO())
 
-	weatherRepo := mongoRepo.NewWeatherRepository(db)
 	weatherAPIKey := os.Getenv("WEATHER_API_KEY")
+	weatherRepo := mongoRepo.NewWeatherRepository(db)
+	weatherAPI := openweather.NewWeatherAPI(weatherAPIKey)
 
 	app := &application{
-		wr:            weatherRepo,
-		weatherAPIKey: weatherAPIKey,
+		wr: weatherRepo,
+		ow: weatherAPI,
 	}
 
 	srv := http.Server{
