@@ -47,7 +47,9 @@ func main() {
 	}(context.TODO())
 
 	weatherAPIKey := os.Getenv("WEATHER_API_KEY")
-	weatherRepo := mongoRepo.NewWeatherRepository(db)
+	database := os.Getenv("DB_NAME")
+	collection := os.Getenv("DB_COLLECTION")
+	weatherRepo := mongoRepo.NewWeatherRepository(db.Database(database).Collection(collection))
 	weatherAPI := openweather.NewWeatherAPI(weatherAPIKey)
 
 	app := &application{

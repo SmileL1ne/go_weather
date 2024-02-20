@@ -1,10 +1,13 @@
 package repository
 
-import "weatherGo/internal/models"
+import (
+	"context"
+	"weatherGo/internal/models"
+)
 
 type Database interface {
-	GetByCity(string) (*models.WeatherInfo, error)
-	UpdateCity(string, models.WeatherInfo) error
+	GetByCity(context.Context, string) (*models.WeatherInfo, error)
+	Update(context.Context, string, *models.WeatherInfo) error
 }
 
 type WeatherAPI interface {
