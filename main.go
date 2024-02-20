@@ -2,46 +2,58 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"time"
+	"weatherGo/pkg/db"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+/*
+	TODO:
+	- add logging in error handling
+	- add tests for both handlers
+	- add .env.example
+*/
+
 type application struct {
+	db *mongo.Client
 }
 
 func main() {
 	app := application{}
 
-	router := httprouter.New()
-	router.HandlerFunc(http.MethodGet, "/weather", app.weather)
-	router.HandlerFunc(http.MethodPost, "/weather", app.weatherPost)
-}
-
-func (app *application) weather(w http.ResponseWriter, req *http.Request) {
-
-}
-
-func (app *application) weatherPost(w http.ResponseWriter, req *http.Request) {
-
-}
-
-func OpenConnection(uri string) (*mongo.Client, error) {
-	options := options.Client().ApplyURI(uri)
-
-	client, err := mongo.Connect(context.Background(), options)
+	err := godotenv.Load()
 	if err != nil {
-		return nil, err
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	if err := client.Ping(context.Background(), nil); err != nil {
-		if err := client.Disconnect(context.Background()); err != nil {
-			panic(err)
+	uri := os.Getenv("DB_URI")
+
+	db, err := db.OpenConnection(uri)
+	if err != nil {
+		log.Fatalf("Error connection to database: %v", err)
+	}
+	defer func(ctx context.Context) {
+		if err := db.Disconnect(ctx); err != nil {
+			return
 		}
-		return nil, err
+	}(context.TODO())
+
+	srv := http.Server{
+		Addr:         fmt.Sprintf("127.0.0.1:%s", os.Getenv("APP_PORT")),
+		Handler:      app.NewRouter(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
 	}
 
-	return client, err
+	log.Printf("starting server on %s", srv.Addr)
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
 }
