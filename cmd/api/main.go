@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -17,7 +17,6 @@ import (
 
 /*
 	TODO:
-	- add logging in error handling
 	- add tests for both handlers
 	- add .env.example
 
@@ -27,27 +26,32 @@ import (
 */
 
 type application struct {
-	wr repository.Database
-	ow repository.WeatherAPI
+	wr     repository.Database
+	wa     repository.WeatherAPI
+	logger *slog.Logger
 }
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		logger.Error("could not load .env file", "error", err)
+		os.Exit(1)
 	}
 
-	uri := os.Getenv("DB_URI")
-
-	db, err := mongoDB.OpenConnection(uri)
+	db, err := mongoDB.OpenConnection(os.Getenv("DB_URI"))
 	if err != nil {
-		log.Fatalf("Error connection to database: %v", err)
+		logger.Error("could not connect to database", "error", err)
+		os.Exit(1)
 	}
 	defer func(ctx context.Context) {
 		if err := db.Disconnect(ctx); err != nil {
 			return
 		}
 	}(context.TODO())
+
+	logger.Info("sucessfully connected to database")
 
 	weatherAPIKey := os.Getenv("WEATHER_API_KEY")
 	database := os.Getenv("DB_NAME")
@@ -56,8 +60,9 @@ func main() {
 	weatherAPI := openweather.NewWeatherAPI(weatherAPIKey)
 
 	app := &application{
-		wr: weatherRepo,
-		ow: weatherAPI,
+		wr:     weatherRepo,
+		wa:     weatherAPI,
+		logger: logger,
 	}
 
 	srv := http.Server{
@@ -68,8 +73,9 @@ func main() {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	log.Printf("starting server on %s", srv.Addr)
+	logger.Info("starting server", "addr", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
+		logger.Error("ListenAndServe error", "error", err)
+		os.Exit(1)
 	}
 }

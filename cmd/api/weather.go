@@ -3,32 +3,27 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
-	"weatherGo/internal"
 	"weatherGo/internal/models"
 )
 
 func (app *application) weather(w http.ResponseWriter, req *http.Request) {
-	var input struct {
-		City string `json:"city"`
-	}
-
-	if err := internal.ReadJSON(req.Body, &input); err != nil {
-		app.serverErrorResponse(w, req, err)
+	city := req.URL.Query().Get("city")
+	if city == "" {
+		app.badRequestResponse(w, req, errors.New("city cannot be blank"))
 		return
 	}
 
 	var info *models.WeatherInfo
 	var err error
 
-	info, err = app.wr.GetByCity(context.Background(), input.City)
+	info, err = app.wr.GetByCity(context.Background(), city)
 	if err != nil && !errors.Is(err, models.ErrNotFound) {
 		app.serverErrorResponse(w, req, err)
 		return
 	}
 	if errors.Is(err, models.ErrNotFound) {
-		info, err = app.ow.Fetch(input.City)
+		info, err = app.wa.Fetch(city)
 		if err != nil {
 			switch {
 			case errors.Is(err, models.ErrNotFound):
@@ -49,15 +44,13 @@ func (app *application) weather(w http.ResponseWriter, req *http.Request) {
 }
 
 func (app *application) weatherPost(w http.ResponseWriter, req *http.Request) {
-	var input struct {
-		City string `json:"city"`
+	city := req.URL.Query().Get("city")
+	if city == "" {
+		app.badRequestResponse(w, req, errors.New("city cannot be blank"))
+		return
 	}
 
-	if err := internal.ReadJSON(req.Body, &input); err != nil {
-		log.Fatalf("Error decoding json from request: %v", err)
-	}
-
-	info, err := app.ow.Fetch(input.City)
+	info, err := app.wa.Fetch(city)
 	if err != nil {
 		switch {
 		case errors.Is(err, models.ErrNotFound):
@@ -70,7 +63,7 @@ func (app *application) weatherPost(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := app.wr.Update(context.Background(), input.City, info)
+	id, err := app.wr.Update(context.Background(), city, info)
 	if err != nil {
 		app.serverErrorResponse(w, req, err)
 		return
