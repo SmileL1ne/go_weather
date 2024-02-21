@@ -8,8 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Add logs to error handling
-
 func OpenConnection(uri string) (*mongo.Client, error) {
 	dbCtx, dbCancelCtx := context.WithTimeout(context.Background(), 100*time.Second)
 	defer dbCancelCtx()

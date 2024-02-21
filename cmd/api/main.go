@@ -16,11 +16,8 @@ import (
 )
 
 /*
-	TODO:
-	- add tests for both handlers
-	- add .env.example
-
 	2 ways of adding new weather info to database:
+
 	1. current (with put handler - would add if not exist)
 	2. add in get handler when not found
 */
