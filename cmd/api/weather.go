@@ -19,16 +19,16 @@ func (app *application) weather(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var weatherInfo *models.WeatherInfo
+	var info *models.WeatherInfo
 	var err error
 
-	weatherInfo, err = app.wr.GetByCity(context.Background(), input.City)
+	info, err = app.wr.GetByCity(context.Background(), input.City)
 	if err != nil && !errors.Is(err, models.ErrNotFound) {
 		app.serverErrorResponse(w, req, err)
 		return
 	}
 	if errors.Is(err, models.ErrNotFound) {
-		weatherInfo, err = app.ow.Fetch(input.City)
+		info, err = app.ow.Fetch(input.City)
 		if err != nil {
 			switch {
 			case errors.Is(err, models.ErrNotFound):
@@ -42,7 +42,7 @@ func (app *application) weather(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if err := app.writeJSON(w, weatherInfo, http.StatusOK); err != nil {
+	if err := app.writeJSON(w, info, http.StatusOK); err != nil {
 		app.serverErrorResponse(w, req, err)
 		return
 	}
@@ -57,7 +57,7 @@ func (app *application) weatherPost(w http.ResponseWriter, req *http.Request) {
 		log.Fatalf("Error decoding json from request: %v", err)
 	}
 
-	weatherInfo, err := app.ow.Fetch(input.City)
+	info, err := app.ow.Fetch(input.City)
 	if err != nil {
 		switch {
 		case errors.Is(err, models.ErrNotFound):
@@ -70,7 +70,7 @@ func (app *application) weatherPost(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = app.wr.Update(context.Background(), input.City, weatherInfo)
+	id, err := app.wr.Update(context.Background(), input.City, info)
 	if err != nil {
 		app.serverErrorResponse(w, req, err)
 		return
@@ -78,6 +78,9 @@ func (app *application) weatherPost(w http.ResponseWriter, req *http.Request) {
 
 	success := map[string]string{
 		"status": "success",
+	}
+	if id != "" {
+		success["inserted_id"] = id
 	}
 
 	if err := app.writeJSON(w, success, http.StatusOK); err != nil {

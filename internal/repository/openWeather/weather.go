@@ -33,10 +33,17 @@ func (a *weatherAPI) Fetch(city string) (*models.WeatherInfo, error) {
 		return nil, models.ErrNotAvailable
 	}
 
-	weather := models.WeatherInfo{}
-	if err := internal.ReadJSON(resp.Body, &weather); err != nil {
+	raw := models.WeatherInfoRaw{}
+	if err := internal.ReadJSON(resp.Body, &raw); err != nil {
 		return nil, err
 	}
 
-	return &weather, nil
+	info := models.WeatherInfo{
+		Weather:     raw.Weather[0].Main,
+		Description: raw.Weather[0].Description,
+		Temp:        internal.ConvertKelvinToCelsius(raw.Main.Temp),
+		FeelsLike:   internal.ConvertKelvinToCelsius(raw.Main.FeelsLike),
+	}
+
+	return &info, nil
 }

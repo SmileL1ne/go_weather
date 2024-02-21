@@ -20,7 +20,10 @@ import (
 	- add logging in error handling
 	- add tests for both handlers
 	- add .env.example
-	- make fetching func so handler fetches from api through repository
+
+	2 ways of adding new weather info to database:
+	1. current (with put handler - would add if not exist)
+	2. add in get handler when not found
 */
 
 type application struct {

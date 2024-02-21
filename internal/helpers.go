@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 )
 
 func ReadJSON(body io.ReadCloser, dst any) error {
@@ -33,4 +34,8 @@ func ReadJSON(body io.ReadCloser, dst any) error {
 		}
 	}
 	return nil
+}
+
+func ConvertKelvinToCelsius(kelvin float64) int {
+	return int(math.Round(kelvin - 273.15))
 }
