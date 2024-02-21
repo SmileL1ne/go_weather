@@ -63,7 +63,7 @@ func main() {
 	}
 
 	srv := http.Server{
-		Addr:         fmt.Sprintf("127.0.0.1:%s", os.Getenv("APP_PORT")),
+		Addr:         fmt.Sprintf("0.0.0.0:%s", os.Getenv("APP_PORT")),
 		Handler:      app.NewRouter(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
